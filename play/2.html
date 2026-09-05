@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+ <meta charset = "UTF-8">
+ <title>弾幕ゲーム</title>
+ <style>
+  body { margin: 0; overflow: hidden; width: 100vw; height: 100vh; background-color: black; color: white; }
+  canvas { display: block; width: 100vw; height: 100vh; margin: 0; }
+ </style>
+</head>
+<body>
+ <canvas>JavaScriptが無効になっている可能性があります</canvas>
+
+ <script>
+  const canvas = document.querySelector('canvas');
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  const ctx = canvas.getContext('2d');
+  const createImg = path => { const i = new Image(); i.src = path; return i; };
+  const frame1 = {
+   x: canvas.width / 2 - 600,
+   y: (canvas.height - 400) / 2,
+   width: 600, height: 400
+  };
+  const frame2 = {
+   x: canvas.width / 2,
+   y: (canvas.height - 400) / 2,
+   width: 600, height: 400
+  };
+  const player1 = {
+   x: frame1.x + frame1.width / 2,
+   y: frame1.y + frame1.height / 2,
+   radius: 8,
+   speed: 180/60
+  };
+  const player2 = {
+   x: frame2.x + frame2.width / 2,
+   y: frame2.y + frame2.height / 2,
+   radius: 8,
+   speed: 180/60
+  };
+  const key = {};
+  const bullet = [];
+  let frameCount = 0;
+  let level = 1;
+  let gameover = false;
+  function loop() { // ループ処理
+   ctx.clearRect(0, 0, canvas.width, canvas.height);
+   frameCount++
+
+   ctx.font = '50px serif';
+   ctx.fillStyle = '#ffffff';
+   ctx.textAlign = 'left';
+   ctx.fillText((frameCount/6).toFixed(0), 10, 50);
+
+   ctx.textAlign = 'center';
+   ctx.fillStyle = '#ffffff44';
+   ctx.fillText(`Player1 wasd keys`, frame1.x + frame2.width / 2, frame2.y - 30);
+   ctx.fillText(`Player2 arrow keys`, frame2.x + frame2.width / 2, frame2.y - 30);
+
+
+   if (frameCount % (11-level) === 0){
+    bullet.push({
+     x: frame1.x + Math.random() * frame1.width,
+     y: 0, radius: 4, speed: 240/60
+    });
+    bullet.push({
+     x: frame2.x + Math.random() * frame2.width,
+     y: 0, radius: 4, speed: 240/60
+    });
+   }
+   if (frameCount %600 === 0 && level !== 10){
+    level++;
+   }
+   for (let i = bullet.length - 1; i >= 0; i--) {
+    const e = bullet[i];
+    e.y += e.speed;
+    ctx.beginPath();
+    ctx.arc(e.x, e.y, e.radius, 0, Math.PI * 2);
+    ctx.fillStyle = '#ff8888';
+    ctx.fill();
+
+    const dx = player1.x - e.x;
+    const dy = player1.y - e.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    if (distance < player1.radius + e.radius) { gameover = 2; }
+    const dx2 = player2.x - e.x;
+    const dy2 = player2.y - e.y;
+    const distance2 = Math.sqrt(dx2 * dx2 + dy2 * dy2);
+    if (distance2 < player2.radius + e.radius) { gameover = 1; }
+    if (e.y > canvas.height) { bullet.splice(i, 1); } 
+   }
+   if (gameover) {
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
+    ctx.fillRect(frame1.x, frame1.y, frame1.width * 2, frame1.height * 2);
+    ctx.fillStyle = '#ff0000';
+    ctx.font = '100px serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(`Player ${gameover} wins!`, frame1.x + frame1.width, frame1.y + frame1.height / 2);
+    ctx.font = '50px serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('Please press "R" or reload to try again', frame1.x + frame1.width, frame1.y + frame1.height / 2 + 70);
+    return; // ループを止める
+   }
+   if((key.d) && player1.x + player1.radius < frame1.x + frame1.width){ player1.x += player1.speed; };
+   if((key.a) && player1.x - player1.radius > frame1.x){ player1.x -= player1.speed; };
+   if((key.w) && player1.y - player1.radius > frame1.y){ player1.y -= player1.speed; };
+   if((key.s) && player1.y + player1.radius < frame1.y + frame1.height){ player1.y += player1.speed; };
+
+   if((key.ArrowRight) && player2.x + player2.radius < frame2.x + frame2.width){ player2.x += player2.speed; };
+   if((key.ArrowLeft) && player2.x - player2.radius > frame2.x){ player2.x -= player2.speed; };
+   if((key.ArrowUp) && player2.y - player2.radius > frame2.y){ player2.y -= player2.speed; };
+   if((key.ArrowDown) && player2.y + player2.radius < frame2.y + frame2.height){ player2.y += player2.speed; };
+
+   ctx.beginPath(); // 線つながり防止(ペンを上げる→ペンを下ろす)これがないと線でつながる
+   ctx.arc(player1.x, player1.y, player1.radius, 0, Math.PI * 2); // 円は中心が起点 Math.PI * 2は1周という意味 *2がないと半円
+   ctx.fillStyle = '#8888ff';
+   ctx.fill(); // 塗りつぶす
+   ctx.beginPath();
+   ctx.arc(player2.x, player2.y, player2.radius, 0, Math.PI * 2);
+   ctx.fillStyle = '#8888ff';
+   ctx.fill(); // 塗りつぶす
+   ctx.beginPath();
+   ctx.strokeStyle = '#ffffff';
+   ctx.lineWidth = 10;
+   ctx.strokeRect(frame1.x, frame1.y, frame1.width, frame1.height);
+   ctx.beginPath();
+   ctx.strokeRect(frame2.x, frame2.y, frame2.width, frame2.height);
+   requestAnimationFrame(loop); // 繰り返し処理
+  }; // ループの終了
+
+
+  function pressR(){
+   if (gameover && (key.r || key.R)){
+    location.reload();
+   }
+   requestAnimationFrame(pressR);
+  };
+  loop(); // 最初の実行
+  pressR();
+
+  document.addEventListener('keydown', (e)=>{ key[e.key] = true; });
+  document.addEventListener('keyup', (e)=>{ key[e.key] = false; });
+
+ </script>
+</body>
+</html>
